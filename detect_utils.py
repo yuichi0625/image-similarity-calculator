@@ -13,22 +13,13 @@ def detect_identical_images(img_dir, q, score_list, display_img_list, detect_min
 
     This is a function for threading in tkinter app.
 
-    Parameters
-    ----------
-    img_dir : str
-        Directory path containing input images
-    q : collections.deque
-        Deque containing progress percentages (0 - 100)
-    score_list : List[float]
-        List containing similarity scores of every image pair
-        This will be updated through execution
-    display_img_list : List[PIL.Image]
-        List containing display images (RGB, pillow object)
-        This will be updated through execution
-    detect_min_length : int, optional
-        Input images will be resized to this length if they are longer than it, by default 500
-    display_width : int, optional
-        Result images will be resized to this width, by default 300
+    Args:
+        img_dir (str): Directory path containing input images
+        q (collections.deque): Deque containing progress percentages (0 - 100)
+        score_list (List[float]): List containing similarity scores of every image pair
+        display_img_list (List[PIL.Image]): List containing RGB display images
+        detect_min_length (int, optional): Input images will be resized to this length if they are longer than it, defaults to 500
+        display_width (int, optional): Result images will be resized to this width, defaults to 300.
     """
     img_paths = extract_image_paths(img_dir)
     comb_paths = combinations(img_paths, 2)
@@ -73,15 +64,11 @@ def detect_identical_images(img_dir, q, score_list, display_img_list, detect_min
 def extract_image_paths(img_dir):
     """Extract all the image paths in the given directory recursively
 
-    Parameters
-    ----------
-    img_dir : str
-        Directory containing images
+    Args:
+        img_dir (str): Directory containing images
 
-    Returns
-    -------
-    List[str]
-        List containing image paths
+    Returns:
+        List[str]: List containing image paths
     """
     regexp = re.compile('.+(jpg|jpeg|png)')
     img_paths = [path for path in glob(os.path.join(img_dir, '**'), recursive=True)
@@ -92,17 +79,12 @@ def extract_image_paths(img_dir):
 def resize_if_exceeds(img, detect_min_length):
     """Resize input image if its width or height exceeds detect_min_length
 
-    Parameters
-    ----------
-    img : np.ndarray
-        BGR image
-    detect_min_length : int
-        Mininum acceptable length of the input image
+    Args:
+        img (np.ndarray): BGR image
+        detect_min_length (int): Mininum acceptable length of the input image
 
-    Returns
-    -------
-    np.ndarray
-        BGR resized image
+    Returns:
+        np.ndarray: BGR resized image
     """
     ratio = detect_min_length / max(*img.shape[:2])
     if ratio < 1:
@@ -113,29 +95,19 @@ def resize_if_exceeds(img, detect_min_length):
 def match_features(img1, img2, detector, bf_matcher, ratio=0.8, num_matched=20):
     """Match features between two input images, and return most probable ones
 
-    Parameters
-    ----------
-    img1 : np.ndarray
-        BGR input image 1
-    img2 : np.ndarray
-        BGR input image 2
-    detector : cv2.AKAZE
-        Feature detector object
-    bf_matcher : cv2.BFMatcher
-        Brute-force matcher object
-    ratio : float, optional
-        Ratio used to extract good matched features, by default 0.8
-    num_matched : int, optional
-        Number of matched features to return, by default 20
+    Args:
+        img1 (np.ndarray): BGR input image 1
+        img2 (np.ndarray): BGR input image 2
+        detector (cv2.AKAZE): Feature detector object
+        bf_matcher (cv2.BFMatcher): Brute-force matcher object
+        ratio (float, optional): Ratio used to extract good matched features, defaults to 0.8
+        num_matched (int, optional): Number of matched features to return, defaults to 20
 
-    Returns
-    -------
-    good : List[List[cv2.DMatch]]
-        Matched features between img1 and img2
-    kp1 : List[cv2.KeyPoint]
-        Feature keypoints in img1
-    kp2 : List[cv2.KeyPoint]
-        Feature keypoints in img2
+    Returns:
+        tuple: Tuple containing:
+            good (List[List[cv2.DMatch]]): Matched features between img1 and img2
+            kp1 (List[cv2.KeyPoint]): Feature keypoints in img1
+            kp2 (List[cv2.KeyPoint]): Feature keypoints in img2
     """
     kp1, des1 = detector.detectAndCompute(img1, None)
     kp2, des2 = detector.detectAndCompute(img2, None)
@@ -156,23 +128,16 @@ def match_features(img1, img2, detector, bf_matcher, ratio=0.8, num_matched=20):
 def calc_degree_and_scale(matched, kp1, kp2, min_group_length=4):
     """Calculate degree and scale from matched features
 
-    Parameters
-    ----------
-    matched : List[List[cv2.DMatch]]
-        Matched features between img1 and img2
-    kp1 : List[cv2.KeyPoint]
-        Feature keypoints in img1
-    kp2 : List[cv2.KeyPoint]
-        Feature keypoints in img2
-    min_group_length : int, optional
-        Minimum devided group length, by default 4
+    Args:
+        matched (List[List[cv2.DMatch]]): Matched features between img1 and img2
+        kp1 (List[cv2.KeyPoint]): Feature keypoints in img1
+        kp2 (List[cv2.KeyPoint]): Feature keypoints in img2
+        min_group_length (int, optional): Minimum devided group length, defaults to 4
 
-    Returns
-    -------
-    rel_deg : float
-        Relative degree calculated by matched features
-    dist_scale : float
-        Distance scale calculated by matched features
+    Returns:
+        tuple: Tuple containing:
+            rel_deg (float): Relative degree calculated by matched features
+            dist_scale (float): Distance scale calculated by matched features
     """
     # matched has to contain more than 1 for calculating combinations
     if len(matched) < 2:
@@ -213,17 +178,12 @@ def devide_into_groups(num_list, diff):
     It returns
         [[0, 0.3, 0.5, 0.8, 1], [3, 4, 5, 6], [9]]
 
-    Parameters
-    ----------
-    num_list : List[int/float]
-        List that will be devided
-    diff : int/float
-        Acceptable difference in the same group
+    Args:
+        num_list (List[int/float]): List that will be devided
+        diff (int/float): Acceptable difference in the same group
 
-    Returns
-    -------
-    List[List[int/float]]
-        Devided list
+    Returns:
+        List[List[int/float]]: Devided list
     """
     num_list = sorted(num_list)
     groups = [[num_list[0]]]
@@ -244,15 +204,11 @@ def calc_median(num_list):
         statistics.median(num_list) returns 2.5
         calc_median(num_list) returns 3
 
-    Parameters
-    ----------
-    num_list : List[int/float]
-        List of numbers
+    Args:
+        num_list (List[int/float]): List of numbers
 
-    Returns
-    -------
-    int/float
-        Median of the list
+    Returns:
+        int/float: Median of the list
     """
     return num_list[len(num_list) // 2]
 
@@ -260,21 +216,15 @@ def calc_median(num_list):
 def resize_by_scale(img1, img2, scale):
     """Resize the bigger image for matching its scale with the smaller one
 
-    Parameters
-    ----------
-    img1 : np.ndarray
-        BGR input image 1
-    img2 : np.ndarray
-        BGR input image 2
-    scale : float
-        Scale between input images (calculated by img1 / img2)
+    Args:
+        img1 (np.ndarray): BGR input image 1
+        img2 (np.ndarray): BGR input image 2
+        scale (float): Scale between input images (calculated by img1 / img2)
 
-    Returns
-    -------
-    img1 : np.ndarray
-        img1, resized if scale > 1
-    img2 : np.ndarray
-        img2, resized if scale < 1
+    Returns:
+        tuple: Tuple containing:
+            img1 (np.ndarray): img1, resized if scale > 1
+            img2 (np.ndarray): img2, resized if scale < 1
     """
     if scale == 0:
         return img1, img2
@@ -292,21 +242,15 @@ def rotate_by_degree(img1, img2, degree):
     Because the smaller image will be used as a template in template-matching,
     it won't be able to include black padding areas.
 
-    Parameters
-    ----------
-    img1 : np.ndarray
-        BGR input image 1
-    img2 : np.ndarray
-        BGR input image 2
-    degree : float
-        Relative degree between two images
+    Args:
+        img1 (np.ndarray): BGR input image 1
+        img2 (np.ndarray): BGR input image 2
+        degree (float): Relative degree between two images
 
-    Returns
-    -------
-    img1 : np.ndarray
-        img1, rotated if img1 is bigger than img2
-    img2 : np.ndarray
-        img2, rotated if img2 is bigger than img1
+    Returns:
+        tuple: Tuple containing:
+            img1 (np.ndarray): img1, rotated if img1 is bigger than img2
+            img2 (np.ndarray): img2, rotated if img2 is bigger than img1
     """
     if degree == 0:
         return img1, img2
@@ -326,23 +270,17 @@ def match_template(img1, img2):
 
     The bigger image will be the query and the smaller one is the template.
 
-    Parameters
-    ----------
-    img1 : np.ndarray
-        BGR input image 1
-    img2 : np.ndarray
-        BGR input image 2
+    Args:
+        img1 (np.ndarray): BGR input image 1
+        img2 (np.ndarray): BGR input image 2
 
-    Returns
-    -------
-    clipped max_val : float
-        Similarity score between two input images
-        This is clipped because cv2.matchTemplate actually computes correlation coefficient (-1 to 1)
-    bbox : Tuple(int)
-        Bounding box (xmin, ymin, xmax, ymax)
-    flag : int
-        Flat representing which image is the query one
-        {1: img1, 2: img2} is the query image
+    Returns:
+        tuple: Tuple containing:
+            clipped max_val (float): Similarity score between two input images
+                                     This is clipped because cv2.matchTemplate actually computes correlation coefficient (-1 to 1)
+            bbox (Tuple[int]): Bounding box (xmin, ymin, xmax, ymax)
+            flag (int): Flat representing which image is the query one
+                        {1: img1, 2: img2} is the query image
     """
     # bigger image will be the query one
     if img1.size >= img2.size:
@@ -373,19 +311,13 @@ def draw_matched_bbox(q_img, degree, bbox):
 
     Bounding box could be rotated, so rerotate it when depicting.
 
-    Parameters
-    ----------
-    q_img : np.ndarray
-        BGR query image
-    degree : float
-        Relative degree between two images
-    bbox : Tuple(int)
-        Bounding box (xmin, ymin, xmax, ymax)
+    Args:
+        q_img (np.ndarray): BGR query image
+        degree (float): Relative degree between two images
+        bbox (Tuple(int)): Bounding box (xmin, ymin, xmax, ymax)
 
-    Returns
-    -------
-    q_img : np.ndarray
-        BGR query image with bbox depicted
+    Returns:
+        np.ndarray: BGR query image with bbox depicted
     """
     xmin, ymin, xmax, ymax = bbox
 
@@ -405,25 +337,16 @@ def draw_matched_bbox(q_img, degree, bbox):
 def create_display_image(q_img, t_img, q_path, t_path, score, display_width=300):
     """Create image for displaying
 
-    Parameters
-    ----------
-    q_img : np.ndarray
-        BGR query image with bbox depicted
-    t_img : np.ndarray
-        BGR template image
-    q_path : str
-        Path of q_img
-    t_path : str
-        Path of t_img
-    score : float
-        Similarity score between q_img and t_img
-    display_width : int, optional
-        Display image will be resized to this width, by default 300
+    Args:
+        q_img (np.ndarray): BGR query image with bbox depicted
+        t_img (np.ndarray): BGR template image
+        q_path (str): Path of q_img
+        t_path (str): Path of t_img
+        score (float): Similarity score between q_img and t_img
+        display_width (int, optional): Display image will be resized to this width, defaults to 300
 
-    Returns
-    -------
-    np.ndarray
-        BGR image with bbox, score and paths depicted
+    Returns:
+        np.ndarray: BGR image with bbox, score and paths depicted
     """
     max_height = max(q_img.shape[0], t_img.shape[0])
     if q_img.shape[0] > t_img.shape[0]:
