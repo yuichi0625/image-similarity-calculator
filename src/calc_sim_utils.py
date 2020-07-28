@@ -8,16 +8,17 @@ import numpy as np
 from PIL import Image
 
 
-def detect_identical_images(img_dir, q, score_list, display_img_list, detect_min_length=500, display_width=300):
-    """Detect identical images and append results to each queue/list
+def calc_similarities_combinatorially(img_dir, q, sim_scores, sim_src_paths, display_imgs, detect_min_length=500, display_width=300):
+    """Calculate similarities and append results to each queue/list
 
     This is a function for threading in tkinter app.
 
     Args:
         img_dir (str): Directory path containing input images
         q (collections.deque): Deque containing progress percentages (0 - 100)
-        score_list (List[float]): List containing similarity scores of every image pair
-        display_img_list (List[PIL.Image]): List containing RGB display images
+        sim_scores (List[float]): List containing similarity scores of every image pair
+        sim_src_paths (List[List[str]]): List containing paths of every image pair matched to sim_scores
+        display_imgs (List[PIL.Image]): List containing RGB display images
         detect_min_length (int, optional): Input images will be resized to this length if they are longer than it, defaults to 500
         display_width (int, optional): Result images will be resized to this width, defaults to 300.
     """
@@ -52,13 +53,14 @@ def detect_identical_images(img_dir, q, score_list, display_img_list, detect_min
             q_path, t_path = path2, path1
         q_img = draw_matched_bbox(q_img, degree, bbox)
         display_img = create_display_image(q_img, t_img, q_path, t_path, score, display_width)
-        p_display_img = Image.fromarray(cv2.cvtColor(display_img, cv2.COLOR_BGR2RGB))
+        pil_display_img = Image.fromarray(cv2.cvtColor(display_img, cv2.COLOR_BGR2RGB))
 
         # update queue and lists
         num_done += 1
         q.append(num_done / num_combs * 100)
-        score_list.append(score)
-        display_img_list.append(p_display_img)
+        sim_scores.append(score)
+        sim_src_paths.append([path1, path2])
+        display_imgs.append(pil_display_img)
 
 
 def extract_image_paths(img_dir):

@@ -1,2 +1,4 @@
 pillow
 opencv-python
+openpyxl
+natsort

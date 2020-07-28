@@ -8,19 +8,21 @@ from threading import Thread
 
 from PIL import ImageTk
 
-from detect_utils import extract_image_paths, detect_identical_images
+from calc_sim_utils import extract_image_paths, calc_similarities_combinatorially
+from output_utils import output_csv, output_excel
 
-WIDTH = 1000
-HEIGHT = 500
-DETECT_MIN_LENGTH = 500
-NUM_DISPLAY = 15
-DISPLAY_WIDTH = 300
-DISPLAY_INTERVAL = 20
-OS = platform.system()
+WIDTH = 1000  # default window width
+HEIGHT = 500  # default window height
+DETECT_MIN_LENGTH = 500  # minimum length of images while calculating similarities
+NUM_DISPLAY = 15  # number of images displayed on the result screen
+DISPLAY_WIDTH = 300  # width of images displayed on the result screen
+DISPLAY_INTERVAL = 20  # interval length of images displayed on the result screen
+OS = platform.system()  # some tkinter actions differ among different OSes
 
 progress_q = deque()
-score_list = []
-display_img_list = []
+sim_scores = []
+sim_src_paths = []
+display_imgs = []
 frames = {}
 
 
@@ -76,9 +78,9 @@ class DetectFrame(ttk.Frame):
         self.progressbar.grid(row=1, column=0)
 
     def reset(self):
-        global score_list, display_img_list
-        score_list = []
-        display_img_list = []
+        global sim_scores, display_imgs
+        sim_scores = []
+        display_imgs = []
         self.button.grid_forget()
 
     def detect(self, dir_path):
@@ -86,8 +88,8 @@ class DetectFrame(ttk.Frame):
         self.tkraise()
 
         thread = Thread(
-            target=detect_identical_images,
-            args=(dir_path, progress_q, score_list, display_img_list, DETECT_MIN_LENGTH, DISPLAY_WIDTH),
+            target=calc_similarities_combinatorially,
+            args=(dir_path, progress_q, sim_scores, sim_src_paths, display_imgs, DETECT_MIN_LENGTH, DISPLAY_WIDTH),
             daemon=True)
         thread.start()
 
@@ -107,7 +109,10 @@ class ResultFrame(ttk.Frame):
     def __init__(self, root):
         super().__init__(root)
         self.canvas = tk.Canvas(self)
-        self.button = ttk.Button(self, text='最初に戻る', command=frames['InputFrame'].tkraise)
+        self.label_frame = ttk.LabelFrame(self, text='')
+        self.button_return = ttk.Button(self.label_frame, text='最初に戻る', command=frames['InputFrame'].tkraise)
+        self.button_csv = ttk.Button(self.label_frame, text='CSVに出力', command=self.output_csv)
+        self.button_excel = ttk.Button(self.label_frame, text='Excelに出力', command=self.output_excel)
         self.scroll_x = tk.Scrollbar(self, orient=tk.HORIZONTAL)
         self.scroll_y = tk.Scrollbar(self, orient=tk.VERTICAL)
         self.activate()
@@ -116,7 +121,10 @@ class ResultFrame(ttk.Frame):
         self.grid(row=0, column=0, sticky='ewsn')
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        self.button.grid(row=1, column=0, sticky='sn')
+        self.label_frame.grid(row=1, column=0)
+        self.button_return.grid(row=0, column=0)
+        self.button_csv.grid(row=0, column=1)
+        self.button_excel.grid(row=0, column=2)
         self.scroll_x.config(command=self.canvas.xview)
         self.scroll_x.grid(row=2, column=0, sticky='ews')
         self.scroll_y.config(command=self.canvas.yview)
@@ -137,18 +145,18 @@ class ResultFrame(ttk.Frame):
 
     def show_results(self):
         # sort images by scores
-        _, display_imgs = zip(*sorted(zip(score_list, display_img_list), key=lambda x: x[0], reverse=True))
-        display_imgs = display_imgs[:NUM_DISPLAY]
+        _, sorted_display_imgs = zip(*sorted(zip(sim_scores, display_imgs), key=lambda x: x[0], reverse=True))
+        sorted_display_imgs = sorted_display_imgs[:NUM_DISPLAY]
 
         # display images
         num = 1
         pos_y = DISPLAY_INTERVAL
-        for idx in range(0, len(display_imgs), 3):
+        for idx in range(0, len(sorted_display_imgs), 3):
             pos_x = DISPLAY_INTERVAL
-            imgs = display_imgs[idx:idx+3]
-            max_height = max(img.size[1] for img in imgs)
-            for img in imgs:
-                tkimg = ImageTk.PhotoImage(image=img)
+            row_imgs = sorted_display_imgs[idx:idx+3]
+            max_height = max(row_img.size[1] for row_img in row_imgs)
+            for row_img in row_imgs:
+                tkimg = ImageTk.PhotoImage(image=row_img)
                 exec(f'self.canvas.img{num} = tkimg')
                 self.canvas.create_image(pos_x, pos_y, image=eval(f'self.canvas.img{num}'), anchor='nw')
                 num += 1
@@ -158,10 +166,18 @@ class ResultFrame(ttk.Frame):
         self.canvas.config(scrollregion=self.canvas.bbox('all'))
         self.tkraise()
 
+    @staticmethod
+    def output_csv():
+        output_csv()
+
+    @staticmethod
+    def output_excel():
+        output_excel(sim_scores, sim_src_paths, 'test.xlsx')
+
 
 def main():
     root = tk.Tk()
-    root.title('同一画像検出アプリ')
+    root.title('同一画像判定アプリ')
     root.geometry(f'{WIDTH}x{HEIGHT}')
     root.rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
