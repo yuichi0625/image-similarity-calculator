@@ -22,20 +22,26 @@ def calc_similarities_combinatorially(img_dir, q, sim_scores, sim_src_paths, dis
         detect_min_length (int, optional): Input images will be resized to this length if they are longer than it, defaults to 500
         display_width (int, optional): Result images will be resized to this width, defaults to 300.
     """
+    # read all the images and resize them if it's too big
     img_paths = extract_image_paths(img_dir)
-    comb_paths = combinations(img_paths, 2)
+    imgs_dict = {img_path: resize_if_exceeds(cv2.imread(img_path), detect_min_length) for img_path in img_paths}
 
+    # extract features from all the images
     detector = cv2.AKAZE_create()
-    bf = cv2.BFMatcher()
+    kp_des_dict = {img_path: detector.detectAndCompute(img, None) for img_path, img in imgs_dict.items()}
 
+    # loop all the combinations
+    comb_paths = combinations(img_paths, 2)
     num_combs = len(img_paths) * (len(img_paths) - 1) / 2
+    bf = cv2.BFMatcher()
     num_done = 0
     for path1, path2 in comb_paths:
-        # read images and resize them if it's too big
-        img1 = resize_if_exceeds(cv2.imread(path1), detect_min_length)
-        img2 = resize_if_exceeds(cv2.imread(path2), detect_min_length)
+        img1 = imgs_dict[path1].copy()
+        img2 = imgs_dict[path2].copy()
+        kp1, des1 = kp_des_dict[path1]
+        kp2, des2 = kp_des_dict[path2]
 
-        good, kp1, kp2 = match_features(img1, img2, detector, bf)
+        good = match_features(img1, img2, des1, des2, bf)
 
         degree, scale = calc_degree_and_scale(good, kp1, kp2)
 
@@ -94,37 +100,33 @@ def resize_if_exceeds(img, detect_min_length):
     return img
 
 
-def match_features(img1, img2, detector, bf_matcher, ratio=0.8, num_matched=20):
+def match_features(img1, img2, des1, des2, bf_matcher, ratio=0.8, num_matched=20):
     """Match features between two input images, and return most probable ones
 
     Args:
         img1 (np.ndarray): BGR input image 1
         img2 (np.ndarray): BGR input image 2
-        detector (cv2.AKAZE): Feature detector object
+        des1 (np.ndarray): descriptors from img1
+        des2 (np.ndarray): descriptors from img2
         bf_matcher (cv2.BFMatcher): Brute-force matcher object
         ratio (float, optional): Ratio used to extract good matched features, defaults to 0.8
         num_matched (int, optional): Number of matched features to return, defaults to 20
 
-    Returns:
-        tuple: Tuple containing:
-            good (List[List[cv2.DMatch]]): Matched features between img1 and img2
-            kp1 (List[cv2.KeyPoint]): Feature keypoints in img1
-            kp2 (List[cv2.KeyPoint]): Feature keypoints in img2
+    Returns
+        List[List[cv2.DMatch]]: Matched features between img1 and img2
     """
-    kp1, des1 = detector.detectAndCompute(img1, None)
-    kp2, des2 = detector.detectAndCompute(img2, None)
     # if no features were detected, detectAndCompute returns [] and None
     if des1 is None or des2 is None:
-        return [], kp1, kp2
+        return []
 
     matches = bf_matcher.knnMatch(des1, des2, k=2)
     # matches has to contain more than 1 element, which has shape=(2,)
     if not matches or not all([len(match) == 2 for match in matches]):
-        return [], kp1, kp2
+        return []
 
     good = [[m] for m, n in matches if m.distance < ratio * n.distance]
     good = sorted(good, key=lambda x: x[0].distance)[:num_matched]
-    return good, kp1, kp2
+    return good
 
 
 def calc_degree_and_scale(matched, kp1, kp2, min_group_length=4):
