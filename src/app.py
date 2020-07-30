@@ -78,8 +78,9 @@ class DetectFrame(ttk.Frame):
         self.progressbar.grid(row=1, column=0)
 
     def reset(self):
-        global sim_scores, display_imgs
+        global sim_scores, sim_src_paths, display_imgs
         sim_scores = []
+        sim_src_paths = []
         display_imgs = []
         self.button.grid_forget()
 
@@ -111,7 +112,7 @@ class ResultFrame(ttk.Frame):
         self.canvas = tk.Canvas(self)
         self.label_frame = ttk.LabelFrame(self, text='')
         self.button_return = ttk.Button(self.label_frame, text='最初に戻る', command=frames['InputFrame'].tkraise)
-        self.button_csv = ttk.Button(self.label_frame, text='CSVに出力', command=self.output_csv)
+        self.button_csv = ttk.Button(self.label_frame, text='csvに出力', command=self.output_csv)
         self.button_excel = ttk.Button(self.label_frame, text='Excelに出力', command=self.output_excel)
         self.scroll_x = tk.Scrollbar(self, orient=tk.HORIZONTAL)
         self.scroll_y = tk.Scrollbar(self, orient=tk.VERTICAL)
@@ -168,11 +169,13 @@ class ResultFrame(ttk.Frame):
 
     @staticmethod
     def output_csv():
-        output_csv()
+        csv_path = 'test.csv'
+        output_csv(sim_scores, sim_src_paths, csv_path)
 
     @staticmethod
     def output_excel():
-        output_excel(sim_scores, sim_src_paths, 'test.xlsx')
+        excel_path = 'test.xlsx'
+        output_excel(sim_scores, sim_src_paths, excel_path)
 
 
 def main():
