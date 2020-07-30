@@ -1,3 +1,4 @@
+import csv
 import os
 
 import numpy as np
@@ -14,7 +15,13 @@ WIDTH = 100
 
 
 def output_csv(sim_scores, sim_src_paths, csv_path):
-    pass
+    with open(csv_path, 'w') as f:
+        writer = csv.writer(f, lineterminator='\n')
+        writer.writerow(['file1', 'file2', 'score'])
+        for score, (path1, path2) in zip(sim_scores, natsorted(sim_src_paths, alg=ns.IGNORECASE)):
+            file1 = os.path.basename(path1)
+            file2 = os.path.basename(path2)
+            writer.writerow([file1, file2, score])
 
 
 def output_excel(sim_scores, sim_src_paths, excel_path):
