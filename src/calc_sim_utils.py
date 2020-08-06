@@ -217,20 +217,21 @@ def calc_median(num_list):
     return num_list[len(num_list) // 2]
 
 
-def resize_by_scale(img1, img2, scale):
+def resize_by_scale(img1, img2, scale, limit=10):
     """Resize the bigger image for matching its scale with the smaller one
 
     Args:
         img1 (np.ndarray): BGR input image 1
         img2 (np.ndarray): BGR input image 2
         scale (float): Scale between input images (calculated by img1 / img2)
+        limit (int/float, optional): acceptable scale range (1 / limit < scale < limit), default to 10
 
     Returns:
         tuple: Tuple containing:
             img1 (np.ndarray): img1, resized if scale > 1
             img2 (np.ndarray): img2, resized if scale < 1
     """
-    if scale == 0:
+    if scale == 0 or 1 / limit > scale or limit < scale:
         return img1, img2
     elif scale > 1:
         scale = 1 / scale
